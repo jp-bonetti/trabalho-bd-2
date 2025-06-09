@@ -52,23 +52,18 @@ CREATE TABLE lista_materiais (
     quantidade NUMERIC NOT NULL
 );
 
-CREATE TABLE recurso_producao (
-    id SERIAL PRIMARY KEY,
-    nome TEXT NOT NULL,
-    tipo TEXT NOT NULL,
-    capacidade INTEGER NOT NULL
-);
-
-CREATE TABLE calendario_producao (
-    id SERIAL PRIMARY KEY,
-    ordem_producao_id INTEGER REFERENCES ordem_producao(id),
-    data TIMESTAMP NOT NULL,
-    turno TEXT NOT NULL
-);
-
 CREATE TABLE cliente (
     id SERIAL PRIMARY KEY,
     nome TEXT NOT NULL,
     contato TEXT,
     endereco TEXT
+);
+
+CREATE TABLE pedido_venda (
+    id SERIAL PRIMARY KEY,
+    cliente_id INTEGER REFERENCES cliente(id),
+    produto_id INTEGER REFERENCES produto(id),
+    quantidade INTEGER NOT NULL,
+    data_pedido TIMESTAMP,
+    status TEXT NOT NULL
 );

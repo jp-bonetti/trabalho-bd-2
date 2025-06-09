@@ -76,19 +76,6 @@ INSERT INTO lista_materiais (produto_id, materia_prima_id, quantidade) VALUES
 (9, 9, 2.5),
 (10, 10, 1.8);
 
--- Inserindo recursos de produção
-INSERT INTO recurso_producao (nome, tipo, capacidade) VALUES
-('Máquina de Costura Industrial', 'Equipamento', 500),
-('Máquina de Corte Têxtil', 'Equipamento', 400),
-('Prensa de Estampagem', 'Equipamento', 300),
-('Mesa de Modelagem', 'Móvel', 200),
-('Máquina de Bordado', 'Equipamento', 250),
-('Equipamento de Acabamento', 'Equipamento', 350),
-('Cabines de Tingimento', 'Infraestrutura', 150),
-('Secador de Tecidos', 'Equipamento', 300),
-('Máquina de Embalagem', 'Equipamento', 500),
-('Sistema de Controle de Produção', 'Software', 600);
-
 -- Inserindo clientes
 INSERT INTO cliente (nome, contato, endereco) VALUES
 ('João Silva', 'joao@email.com', 'Rua do Comércio, 210'),
@@ -114,16 +101,3 @@ INSERT INTO ordem_producao (produto_id, quantidade, data_inicio, data_fim, statu
 (8, 800, '2025-06-17 08:00:00', '2025-07-05 17:00:00', 'Planejado'),
 (9, 500, '2025-06-20 09:00:00', '2025-07-10 18:00:00', 'Planejado'),
 (10, 300, '2025-06-22 08:00:00', '2025-07-15 17:00:00', 'Planejado');
-
--- Inserindo calendário de produção
-INSERT INTO calendario_producao (ordem_producao_id, data, turno) VALUES
-(1, '2025-06-02 08:00:00', 'Manhã'),
-(2, '2025-06-06 14:00:00', 'Tarde'),
-(3, '2025-06-08 09:00:00', 'Noite'),
-(4, '2025-06-10 10:00:00', 'Manhã'),
-(5, '2025-06-14 15:00:00', 'Tarde'),
-(6, '2025-06-16 11:00:00', 'Noite'),
-(7, '2025-06-20 08:00:00', 'Manhã'),
-(8, '2025-06-25 13:00:00', 'Tarde'),
-(9, '2025-06-28 12:00:00', 'Noite'),
-(10, '2025-07-02 09:00:00', 'Manhã');
