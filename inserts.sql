@@ -1,4 +1,3 @@
--- Inserindo produtos
 INSERT INTO produto (nome, descricao, preco, categoria) VALUES
 ('Camisa Social Slim', 'Camisa social de algodão com corte slim', 149.99, 'Camisas'),
 ('Calça Jeans Skinny', 'Calça jeans masculina com corte ajustado', 189.99, 'Calças'),
@@ -11,7 +10,6 @@ INSERT INTO produto (nome, descricao, preco, categoria) VALUES
 ('Cinto de Couro', 'Cinto legítimo com fivela metálica', 99.99, 'Acessórios'),
 ('Gravata Seda', 'Gravata de seda pura', 149.99, 'Acessórios');
 
--- Inserindo fornecedores
 INSERT INTO fornecedor (nome, contato, endereco) VALUES
 ('Tecidos Luxo', 'contato@luxotecidos.com', 'Rua das Fibras, 123'),
 ('Fios & Tramas', 'contato@fioseetramas.com', 'Av. dos Tecidos, 456'),
@@ -24,7 +22,6 @@ INSERT INTO fornecedor (nome, contato, endereco) VALUES
 ('Estamparia Criativa', 'contato@estampariacriativa.com', 'Rua das Estampas, 606'),
 ('Zíper e Aviamentos', 'contato@ziperaviamentos.com', 'Av. dos Detalhes, 707');
 
--- Inserindo matéria-prima
 INSERT INTO materia_prima (nome, quantidade, unidade, fornecedor_id) VALUES
 ('Tecido Algodão', 1000, 'm²', 1),
 ('Tecido Jeans', 1200, 'm²', 2),
@@ -37,7 +34,6 @@ INSERT INTO materia_prima (nome, quantidade, unidade, fornecedor_id) VALUES
 ('Estampas Personalizadas', 500, 'm²', 9),
 ('Aviamentos Diversos', 600, 'un', 10);
 
--- Inserindo pedidos de compra
 INSERT INTO pedido_compra (materia_prima_id, quantidade, data_pedido, status) VALUES
 (1, 500, '2025-06-01 10:00:00', 'Aprovado'),
 (2, 700, '2025-06-02 14:00:00', 'Pendente'),
@@ -50,7 +46,6 @@ INSERT INTO pedido_compra (materia_prima_id, quantidade, data_pedido, status) VA
 (9, 500, '2025-06-14 14:00:00', 'Aprovado'),
 (10, 300, '2025-06-16 10:00:00', 'Em processamento');
 
--- Inserindo estoque
 INSERT INTO estoque (produto_id, quantidade, localizacao) VALUES
 (1, 250, 'Galpão A'),
 (2, 300, 'Galpão B'),
@@ -63,7 +58,6 @@ INSERT INTO estoque (produto_id, quantidade, localizacao) VALUES
 (9, 320, 'Galpão I'),
 (10, 150, 'Galpão J');
 
--- Inserindo lista de materiais
 INSERT INTO lista_materiais (produto_id, materia_prima_id, quantidade) VALUES
 (1, 1, 2.5),
 (2, 2, 3.0),
@@ -76,7 +70,6 @@ INSERT INTO lista_materiais (produto_id, materia_prima_id, quantidade) VALUES
 (9, 9, 2.5),
 (10, 10, 1.8);
 
--- Inserindo clientes
 INSERT INTO cliente (nome, contato, endereco) VALUES
 ('João Silva', 'joao@email.com', 'Rua do Comércio, 210'),
 ('Maria Souza', 'maria@email.com', 'Praça Central, 45'),
@@ -89,7 +82,6 @@ INSERT INTO cliente (nome, contato, endereco) VALUES
 ('Gabriel Costa', 'gabriel@email.com', 'Rua do Design, 505'),
 ('Renata Oliveira', 'renata@email.com', 'Alameda da Costura, 606');
 
--- Inserindo ordens de produção
 INSERT INTO ordem_producao (produto_id, quantidade, data_inicio, data_fim, status) VALUES
 (1, 500, '2025-06-01 08:00:00', '2025-06-15 18:00:00', 'Em andamento'),
 (2, 700, '2025-06-02 09:00:00', '2025-06-16 17:00:00', 'Planejado'),
@@ -101,3 +93,15 @@ INSERT INTO ordem_producao (produto_id, quantidade, data_inicio, data_fim, statu
 (8, 800, '2025-06-17 08:00:00', '2025-07-05 17:00:00', 'Planejado'),
 (9, 500, '2025-06-20 09:00:00', '2025-07-10 18:00:00', 'Planejado'),
 (10, 300, '2025-06-22 08:00:00', '2025-07-15 17:00:00', 'Planejado');
+
+INSERT INTO pedido_venda (cliente_id, produto_id, quantidade, data_pedido, status) VALUES
+(1, 3, 2, '2025-06-01 10:00:00', 'Confirmado'),
+(2, 5, 1, '2025-06-02 12:30:00', 'Em processamento'),
+(3, 7, 3, '2025-06-03 15:45:00', 'Enviado'),
+(4, 1, 2, '2025-06-04 09:20:00', 'Confirmado'),
+(5, 9, 1, '2025-06-05 17:10:00', 'Aguardando pagamento'),
+(6, 2, 4, '2025-06-06 14:55:00', 'Confirmado'),
+(7, 6, 2, '2025-06-07 11:30:00', 'Em processamento'),
+(8, 10, 1, '2025-06-08 16:05:00', 'Enviado'),
+(9, 4, 3, '2025-06-09 08:40:00', 'Aguardando pagamento'),
+(10, 8, 5, '2025-06-10 13:25:00', 'Confirmado');
