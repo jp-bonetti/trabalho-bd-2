@@ -1,0 +1,1 @@
+[Link para o diagrama ER](https://app.diagrams.net/?splash=0#G1a2jv-pixRwmsNJ-SWNWQZ0iOJ5_lCCVI#%7B%22pageId%22%3A%22AZrENnPkUvI1qUt0fQRJ%22%7D)
