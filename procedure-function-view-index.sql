@@ -1,96 +1,154 @@
--- Registrar Ordem de Produção
--- Automação do registro de produção sem necessidade de múltiplos comandos INSERT, garantindo consistência.
-CREATE PROCEDURE registrar_ordem_producao(IN produto_id INT, IN quantidade INT, IN data_inicio TIMESTAMP, IN status TEXT)
-LANGUAGE plpgsql
-AS $$
+-- =============================
+-- 1. Função: registrar_movimentacao
+-- Centraliza a lógica de movimentação de estoque
+-- Usada para registrar entradas e saídas de produto ou matéria-prima
+-- =============================
+CREATE OR REPLACE FUNCTION registrar_movimentacao(
+    tipo_movimentacao VARCHAR,
+    produto_id INT,
+    materia_prima_id INT,
+    quantidade NUMERIC,
+    origem VARCHAR,
+    referencia_id INT
+)
+RETURNS VOID AS $$
 BEGIN
-    INSERT INTO ordem_producao (produto_id, quantidade, data_inicio, status)
-    VALUES (produto_id, quantidade, data_inicio, status);
+    INSERT INTO movimentacao_estoque (
+        tipo, produto_id, materia_prima_id, quantidade, data, origem, referencia_id
+    )
+    VALUES (
+        tipo_movimentacao, produto_id, materia_prima_id, quantidade, now(), origem, referencia_id
+    );
 END;
-$$;
+$$ LANGUAGE plpgsql;
 
--- Calcular Estoque de Produto
--- Auxilia em consultas rápidas para verificar a disponibilidade de um item sem necessidade de múltiplos cálculos externos.
-
-CREATE FUNCTION calcular_estoque(produto_id INT) RETURNS INT
-LANGUAGE plpgsql
-AS $$
+-- =============================
+-- 2. Função: estoque_baixo
+-- Verifica se uma matéria-prima está abaixo de um limite mínimo
+-- Útil para alertas automáticos e planejamento de compras
+-- =============================
+CREATE OR REPLACE FUNCTION estoque_baixo(materia_id INT, limite NUMERIC)
+RETURNS BOOLEAN AS $$
 DECLARE
-    estoque_atual INT;
+    qtd NUMERIC;
 BEGIN
-    SELECT quantidade INTO estoque_atual FROM estoque WHERE produto_id = produto_id;
-    RETURN COALESCE(estoque_atual, 0);
+    SELECT quantidade INTO qtd FROM estoque
+    WHERE tipo = 'MATERIA_PRIMA' AND referencia_id = materia_id;
+
+    RETURN qtd IS NOT NULL AND qtd < limite;
 END;
-$$;
+$$ LANGUAGE plpgsql;
 
--- Atualizar Status do Pedido de Compra
--- Facilita a gestão do fluxo de compras, permitindo atualização padronizada do status sem necessidade de manipulação direta da tabela.
-
-CREATE PROCEDURE atualizar_status_pedido(IN pedido_id INT, IN novo_status TEXT)
-LANGUAGE plpgsql
-AS $$
+-- =============================
+-- 3. Procedure: finalizar_pedido_venda
+-- Atualiza o status do pedido de venda e reduz o estoque correspondente
+-- Também registra a saída na movimentação de estoque
+-- =============================
+CREATE OR REPLACE FUNCTION finalizar_pedido_venda(pedido_id INT)
+RETURNS VOID AS $$
+DECLARE
+    prod_id INT;
+    qtd INT;
 BEGIN
-    UPDATE pedido_compra SET status = novo_status WHERE id = pedido_id;
-END;
-$$;
+    UPDATE pedido_venda SET status = 'ENTREGUE' WHERE id = pedido_id;
 
--- Atualizar Estoque Após Produção
--- Automatiza a movimentação do estoque para evitar inconsistências e necessidade de ajustes manuais.
+    SELECT produto_id, quantidade INTO prod_id, qtd FROM pedido_venda WHERE id = pedido_id;
 
-CREATE TRIGGER atualizar_estoque_producao
-AFTER UPDATE ON ordem_producao
-FOR EACH ROW
-WHEN (NEW.status = 'Finalizado')
-EXECUTE FUNCTION atualizar_estoque();
-
-CREATE FUNCTION atualizar_estoque() RETURNS TRIGGER
-LANGUAGE plpgsql
-AS $$
-BEGIN
     UPDATE estoque
-    SET quantidade = quantidade + NEW.quantidade
-    WHERE produto_id = NEW.produto_id;
+    SET quantidade = quantidade - qtd
+    WHERE tipo = 'PRODUTO' AND referencia_id = prod_id;
+
+    PERFORM registrar_movimentacao('SAIDA', prod_id, NULL, qtd, 'pedido_venda', pedido_id);
+END;
+$$ LANGUAGE plpgsql;
+
+-- =============================
+-- 4. Trigger: atualizar_estoque_apos_compra
+-- Após inserção de item de compra, atualiza estoque de matéria-prima
+-- Também registra movimentação de entrada no estoque
+-- =============================
+CREATE OR REPLACE FUNCTION atualizar_estoque_apos_compra()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM estoque
+        WHERE tipo = 'MATERIA_PRIMA' AND referencia_id = NEW.materia_prima_id
+    ) THEN
+        UPDATE estoque
+        SET quantidade = quantidade + NEW.quantidade
+        WHERE tipo = 'MATERIA_PRIMA' AND referencia_id = NEW.materia_prima_id;
+    ELSE
+        INSERT INTO estoque (tipo, referencia_id, quantidade, localizacao)
+        VALUES ('MATERIA_PRIMA', NEW.materia_prima_id, NEW.quantidade, 'Automática');
+    END IF;
+
+    PERFORM registrar_movimentacao('ENTRADA', NULL, NEW.materia_prima_id, NEW.quantidade, 'pedido_compra', NEW.pedido_compra_id);
+
     RETURN NEW;
 END;
-$$;
+$$ LANGUAGE plpgsql;
 
--- Status das Ordens de Produção
--- Gera uma visão consolidada para acompanhamento da produção.
+CREATE TRIGGER trg_atualizar_estoque
+AFTER INSERT ON item_pedido_compra
+FOR EACH ROW EXECUTE FUNCTION atualizar_estoque_apos_compra();
 
-CREATE VIEW status_ordens_producao AS
-SELECT op.id, p.nome AS produto, op.quantidade, op.status
+-- =============================
+-- 5. VIEW: vw_ordens_producao_detalhes
+-- Apresenta ordens de produção com nome do produto
+-- Ideal para listagens e dashboards
+-- =============================
+CREATE OR REPLACE VIEW vw_ordens_producao_detalhes AS
+SELECT 
+    op.id AS ordem_id,
+    p.nome AS produto,
+    op.quantidade,
+    op.data_inicio,
+    op.data_fim,
+    op.status
 FROM ordem_producao op
 JOIN produto p ON op.produto_id = p.id;
 
--- Materiais Necessários para Produção
--- Facilita a consulta das matérias-primas utilizadas na fabricação.
+-- =============================
+-- 6. VIEW: vw_estoque_materias_primas
+-- Mostra estoque atual de matérias-primas com dados do fornecedor
+-- Usada em relatórios e planejamento de compras
+-- =============================
+CREATE OR REPLACE VIEW vw_estoque_materias_primas AS
+SELECT 
+    m.nome AS materia_prima,
+    e.quantidade,
+    m.unidade,
+    f.nome AS fornecedor
+FROM estoque e
+JOIN materia_prima m ON e.referencia_id = m.id
+LEFT JOIN fornecedor f ON m.fornecedor_id = f.id
+WHERE e.tipo = 'MATERIA_PRIMA';
 
-CREATE VIEW materiais_por_produto AS
-SELECT p.nome AS produto, mp.nome AS materia_prima, lm.quantidade
-FROM lista_materiais lm
-JOIN produto p ON lm.produto_id = p.id
-JOIN materia_prima mp ON lm.materia_prima_id = mp.id;
+-- =============================
+-- 7. VIEW: vw_historico_movimentacoes
+-- Histórico completo de entradas e saídas, com nome do item
+-- Útil para auditoria e rastreabilidade
+-- =============================
+CREATE OR REPLACE VIEW vw_historico_movimentacoes AS
+SELECT 
+    m.id,
+    m.tipo,
+    COALESCE(p.nome, mp.nome) AS item,
+    m.quantidade,
+    m.origem,
+    m.referencia_id,
+    m.data
+FROM movimentacao_estoque m
+LEFT JOIN produto p ON m.produto_id = p.id
+LEFT JOIN materia_prima mp ON m.materia_prima_id = mp.id;
 
--- Pedidos Pendentes de Compra
--- Permite identificação rápida dos pedidos que ainda estão aguardando aprovação.
-
-CREATE VIEW pedidos_pendentes AS
-SELECT id, materia_prima_id, quantidade, data_pedido, status
-FROM pedido_compra
-WHERE status NOT IN ('Aprovado', 'Finalizado');
-
--- Acelerar Consulta de Estoque
--- Melhora a performance de consultas por produto no estoque.
-
-CREATE INDEX idx_estoque_produto ON estoque (produto_id);
-
--- Otimizar Consulta de Ordens de Produção
--- Acelera buscas frequentes por ordens de produção com status específico.
-
-CREATE INDEX idx_ordem_status ON ordem_producao (status);
-
--- Melhorar Performance de Pedidos de Compra
--- Acelera listagens de pedidos pendentes ou concluídos.
-
-CREATE INDEX idx_pedido_status ON pedido_compra (status);
+-- =============================
+-- 8. ÍNDICES para Performance
+-- Aceleram joins e filtros frequentes em tabelas grandes
+-- =============================
+CREATE INDEX idx_estoque_tipo_referencia ON estoque(tipo, referencia_id);
+CREATE INDEX idx_pedido_venda_cliente ON pedido_venda(cliente_id);
+CREATE INDEX idx_ordem_produto ON ordem_producao(produto_id);
+CREATE INDEX idx_materia_fornecedor ON materia_prima(fornecedor_id);
+CREATE INDEX idx_movimentacao_data ON movimentacao_estoque(data);
 
